@@ -1,0 +1,12 @@
+#!/bin/bash
+
+UPC=$1
+COUNT=`sqlite3 inventory.db "SELECT count FROM items WHERE upc == '$UPC' AND count > 1;"`
+
+if [[ $COUNT > 1 ]]; then
+  sqlite3 inventory.db "UPDATE items SET count = count - 1 WHERE upc = '$UPC'"
+  sqlite3 inventory.db "DELETE FROM groceries WHERE ROWID IN  (SELECT MIN(ROWID) as row_id FROM groceries WHERE  item = '$UPC') ;"
+else
+  sqlite3 inventory.db "DELETE FROM items WHERE upc == '$UPC'"
+  sqlite3 inventory.db "DELETE FROM groceries WHERE ROWID IN  (SELECT MIN(ROWID) as row_id FROM groceries WHERE  item = '$UPC') ;"
+fi

@@ -1,0 +1,16 @@
+#!/bin/bash
+
+UPC=$1
+NAME=$2
+IMAGE=$3
+DATE=`date`
+EXP_DATE=$4
+
+sqlite3 inventory.db << EOF
+  INSERT OR REPLACE INTO items (upc, name, image, count) 
+  VALUES ('$UPC', '$NAME', '$IMAGE', 
+    COALESCE((SELECT count FROM items WHERE upc = '$UPC'), 0) + 1);
+  
+  INSERT INTO groceries (item, date_added, exp_date, storage_id)
+    VALUES ('$UPC', '$DATE', '$EXP_DATE', 1);
+EOF
