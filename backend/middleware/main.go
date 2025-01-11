@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"log"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,6 +18,7 @@ import (
 )
 const file string = "/home/violet/documents/development/grocery-inventory/backend/database/inventory.db"
 func addItem(w http.ResponseWriter, r *http.Request) {
+        enableCors(&w)
 	input, err := io.ReadAll(r.Body)
 	if err != nil {
 		return
@@ -35,9 +37,14 @@ func addItem(w http.ResponseWriter, r *http.Request) {
         insertIntoGroceries := "INSERT INTO groceries (item, date_added, exp_date, storage_id) VALUES ('" + item.Upc + "', '" + currentTime.String() + "', '" + item.ExpDate + "', '" + strconv.Itoa(item.Storage) + "');"
         db.Exec(insertIntoItems)
         db.Exec(insertIntoGroceries)
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "")
 }
 
 func deleteItem(w http.ResponseWriter, r *http.Request) {
+        enableCors(&w)
 	input, err := io.ReadAll(r.Body)
 	if err != nil {
 		return
@@ -104,9 +111,14 @@ func deleteItem(w http.ResponseWriter, r *http.Request) {
 	                return
 	        }
 	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, "")
 }
 
 func listGroceries(w http.ResponseWriter, r *http.Request) {
+        enableCors(&w)
         db, err := sql.Open("sqlite3", file)
         if err != nil {
                 log.Println(err)
@@ -132,6 +144,12 @@ func listGroceries(w http.ResponseWriter, r *http.Request) {
 	        }
 	        log.Printf("%d: %s\n", id, item)
 	}
+}
+
+func enableCors(w *http.ResponseWriter) {
+        (*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+        (*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS") 
+        (*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 }
 
 func main() {
