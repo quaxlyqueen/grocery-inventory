@@ -53,7 +53,6 @@ const App = () => {
     const data = await response.json();
     setItems(data);
   }
-  getItems();
 
   return (
     <div>
