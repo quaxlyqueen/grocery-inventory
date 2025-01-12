@@ -7,6 +7,7 @@ const App = () => {
     image: "",
     count: 0,
   }]);
+
   const [formData, setFormData] = useState({
     upc: "",
   });
@@ -52,6 +53,7 @@ const App = () => {
     const data = await response.json();
     setItems(data);
   }
+  getItems();
 
   return (
     <div>
