@@ -2,9 +2,7 @@ import React, { useState } from "react";
 
 const App = () => {
   const [formData, setFormData] = useState({
-    upc: "",
-    exp_date: "",
-    storage_id: 1,
+    upc: ""
   });
 
   // Update form data to always be up to date with the entries on the form.
@@ -19,59 +17,52 @@ const App = () => {
   const handleSubmit = async (event) => {
     event.preventDefault(); // Prevent default form submission behavior
 
+    const requestOptions = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formData),
+    };
+    console.log(requestOptions);
     try {
-      await fetch("http://localhost:5787/addItem", {
-        method: "POST", // Use POST for sending data
-        headers: { "Content-Type": "application/json" }, // Set the content type
-        body: JSON.stringify(formData), // Convert the JS object to JSON string
-      });
+      await fetch("http://localhost:5787/addItem", requestOptions);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
 
-  const getGroceries = async () => {
+  const getItems = async () => {
     try {
-      var response = await fetch("http://localhost:5787/listGroceries", {
-        method: "POST", // Use POST for sending data
+      var response = await fetch("http://localhost:5787/listItems", {
+        method: "GET", // Use POST for sending data
         headers: { "Content-Type": "application/json" }, // Set the content type
-        body: JSON.stringify(""), // Convert the JS object to JSON string
       });
     } catch (error) {
       console.error("Error fetching data:", error);
     }
+
+    console.log(response.body);
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <input
-        placeholder="UPC"
-        type="text"
-        name="upc"
-        value={formData.upc}
-        onChange={handleChange}
-      />
-      <input
-        placeholder="exp_date"
-        type="text"
-        name="exp_date"
-        value={formData.exp_date}
-        onChange={handleChange}
-      />
-      <input
-        placeholder="storage_id"
-        type="text"
-        name="storage_id"
-        value={formData.storage_id}
-        onChange={handleChange}
-      />
-
-      <div className="row">
-        <button type="submit" className="button shadow">
-          Submit
-        </button>
-      </div>
-    </form >
+    <div>
+      <form onSubmit={handleSubmit}>
+        <input
+          placeholder="UPC"
+          type="text"
+          name="upc"
+          value={formData.upc}
+          onChange={handleChange}
+        />
+        <div className="row">
+          <button type="submit" className="button shadow">
+            Submit
+          </button>
+        </div>
+      </form >
+      <button onClick={getItems}>Get Items List</button>
+    </div>
   );
 }
 export default App

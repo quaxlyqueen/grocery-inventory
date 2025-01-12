@@ -109,31 +109,33 @@ func dbQuery(q string) ([]interface{}, error) {
 	return results, nil
 }
 
-func jsonToItem(w http.ResponseWriter, r *http.Request) (Item, error) {
+func jsonToItem(w http.ResponseWriter, r *http.Request) (Upc, error) {
+	enableCors(&w)
+	log.Println(r.Body)
 	input, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, "")
 		log.Println("error reading json body")
-		return Item{}, err
+		return Upc{}, err
 	}
-
 	defer r.Body.Close()
-	item := Item{}
+
+	item := Upc{}
 	err = json.Unmarshal(input, &item)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, "")
 		log.Println("error converting JSON to Item")
-		return Item{}, err
+		return Upc{}, err
 	}
-	log.Println("success")
 	return item, nil
 }
 
 func addItem(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Body)
 	enableCors(&w)
 	item, err := jsonToItem(w, r)
 	if err != nil {
@@ -141,12 +143,8 @@ func addItem(w http.ResponseWriter, r *http.Request) {
 	}
 
 	offResponse, err := getProduct(item.Upc)
-	currentTime := time.Now()
-	log.Println(offResponse.Product.ProductName)
 	insertIntoItems := "INSERT OR REPLACE INTO items (upc, name, image, count) VALUES ('" + item.Upc + "', '" + offResponse.Product.ProductName + "', '" + offResponse.Product.ImageSmallURL + "', COALESCE((SELECT count FROM items WHERE upc = '" + item.Upc + "'), 0) + 1);"
-	insertIntoGroceries := "INSERT INTO groceries (item, date_added, exp_date) VALUES ('" + item.Upc + "', '" + currentTime.String() + "', '" + item.ExpDate + "');"
 	dbExec(insertIntoItems)
-	dbExec(insertIntoGroceries)
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
@@ -229,16 +227,16 @@ func deleteItem(w http.ResponseWriter, r *http.Request) {
 }
 
 // Retrieve all groceries
-func listGroceries(w http.ResponseWriter, r *http.Request) {
+func listItems(w http.ResponseWriter, r *http.Request) {
 	enableCors(&w)
-	items, err := dbQuery("SELECT * FROM groceries;")
+	items, err := dbQuery("SELECT * FROM items;")
 	if err != nil {
 		log.Println("error from dbQuery")
 		log.Println(err)
 		return
 	}
 
-	var groceryJson []GroceryJSON
+	var itemsJson []Item
 	for _, itemInterface := range items {
 		// Type assertion to convert itemInterface to Grocery
 		itemMap, ok := itemInterface.(map[string]interface{})
@@ -248,36 +246,32 @@ func listGroceries(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Extract values from the map
-		var grocery Grocery
-		if id, ok := itemMap["id"].(float64); ok {
-			grocery.ID = int64(id)
+		var i Item 
+		if upc, ok := itemMap["upc"].(string); ok {
+			i.Upc = upc
 		}
-		if item, ok := itemMap["item"].(string); ok {
-			grocery.Item = item
+		if name, ok := itemMap["name"].(string); ok {
+			i.Name = name
 		}
-		if dateAdded, ok := itemMap["date_added"].(string); ok {
-			grocery.DateAdded = dateAdded
+		if image, ok := itemMap["image"].(string); ok {
+			i.Image = image
 		}
-		if expDate, ok := itemMap["exp_date"].(string); ok {
-			grocery.ExpDate = expDate
-		}
-		if storageID, ok := itemMap["storage_id"].(float64); ok {
-			grocery.StorageID = int(storageID)
+		if count, ok := itemMap["count"].(int64); ok {
+			i.Count = count
 		}
 
-		groceryJson = append(groceryJson, GroceryJSON{
-			ID:        grocery.ID,
-			Item:      grocery.Item,
-			DateAdded: grocery.DateAdded,
-			ExpDate:   grocery.ExpDate,
-			StorageID: grocery.StorageID,
+		itemsJson = append(itemsJson, Item {
+			Upc: i.Upc,
+			Name: i.Name,
+			Image: i.Image,
+			Count: i.Count,
 		})
 	}
 
-	jsonData, err := json.Marshal(groceryJson)
+	jsonData, err := json.Marshal(itemsJson)
 	if err != nil {
 		log.Println("Error marshalling to JSON:", err)
-		http.Error(w, "Error marshalling groceries to JSON", http.StatusInternalServerError)
+		http.Error(w, "Error marshalling items to JSON", http.StatusInternalServerError)
 		return
 	}
 
@@ -290,7 +284,7 @@ func listGroceries(w http.ResponseWriter, r *http.Request) {
 }
 
 func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
 	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 }
@@ -308,13 +302,13 @@ func main() {
 	endpoint := []string{
 		"/addItem",
 		"/deleteItem",
-		"/listGroceries",
+		"/listItems",
 	}
 
 	function := []func(http.ResponseWriter, *http.Request){
 		addItem,
 		deleteItem,
-		listGroceries,
+		listItems,
 	}
 
 	r := mux.NewRouter()

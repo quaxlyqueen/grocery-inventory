@@ -1,3 +1,0 @@
-#!/bin/bash
-
-curl localhost:5787/listGroceries

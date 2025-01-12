@@ -6,12 +6,4 @@ CREATE TABLE items (
   image TEXT,
   count INTEGER
 );
-
-CREATE TABLE groceries (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  item TEXT NOT NULL,
-  date_added DATE,
-  exp_date DATE,
-  FOREIGN KEY (item) REFERENCES items(upc)
-);
 EOF
