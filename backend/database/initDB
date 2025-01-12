@@ -1,14 +1,5 @@
 #!/bin/bash
 sqlite3 inventory.db << EOF
-CREATE TABLE storage (
-  id INTEGER PRIMARY KEY,
-  name TEXT UNIQUE NOT NULL
-);
-
-INSERT OR IGNORE INTO storage (id, name) VALUES (1, 'fridge');
-INSERT OR IGNORE INTO storage (id, name) VALUES (2, 'freezer');
-INSERT OR IGNORE INTO storage (id, name) VALUES (3, 'pantry');
-
 CREATE TABLE items (
   upc TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -21,8 +12,6 @@ CREATE TABLE groceries (
   item TEXT NOT NULL,
   date_added DATE,
   exp_date DATE,
-  storage_id INTEGER,
-  FOREIGN KEY (item) REFERENCES items(upc),
-  FOREIGN KEY (storage_id) REFERENCES storage(id)
+  FOREIGN KEY (item) REFERENCES items(upc)
 );
 EOF

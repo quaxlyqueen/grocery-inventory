@@ -3,10 +3,8 @@ import React, { useState } from "react";
 const App = () => {
   const [formData, setFormData] = useState({
     upc: "",
-    name: "",
-    image: "",
     exp_date: "",
-    storage_id: 0,
+    storage_id: 1,
   });
 
   // Update form data to always be up to date with the entries on the form.
@@ -16,6 +14,7 @@ const App = () => {
       [event.target.name]: event.target.value,
     });
   };
+
   // Transmit data to the server's API for sending email.
   const handleSubmit = async (event) => {
     event.preventDefault(); // Prevent default form submission behavior
@@ -31,6 +30,18 @@ const App = () => {
     }
   };
 
+  const getGroceries = async () => {
+    try {
+      var response = await fetch("http://localhost:5787/listGroceries", {
+        method: "POST", // Use POST for sending data
+        headers: { "Content-Type": "application/json" }, // Set the content type
+        body: JSON.stringify(""), // Convert the JS object to JSON string
+      });
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit}>
       <input
@@ -38,20 +49,6 @@ const App = () => {
         type="text"
         name="upc"
         value={formData.upc}
-        onChange={handleChange}
-      />
-      <input
-        placeholder="name"
-        type="text"
-        name="name"
-        value={formData.name}
-        onChange={handleChange}
-      />
-      <input
-        placeholder="image"
-        type="text"
-        name="image"
-        value={formData.image}
         onChange={handleChange}
       />
       <input

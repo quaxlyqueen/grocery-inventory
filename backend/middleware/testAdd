@@ -1,3 +1,2 @@
 #!/bin/bash
-curl --data '{"upc":"test", "name": "test", "image": "/some/path", "exp_date": "1-9-2025", 
-"storage_id": 1}' localhost:5787/addItem
+curl --data '{"upc":"070662010020", "exp_date": "23-08-2025"}' localhost:5787/addItem

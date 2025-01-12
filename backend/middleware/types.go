@@ -8,6 +8,16 @@ type Item struct {
 	Storage int    `json:"storage_id"`
 }
 
+type OpenFoodFactsResponse struct {
+  Code        string 			`json:"code"`
+  Product     Product     `json:"product"`
+}
+
+type Product struct {
+  ImageSmallURL string `json:"image_small_url"`
+  ProductName   string `json:"product_name"`
+}
+
 type Grocery struct {
 	ID        int64
 	Item      string
@@ -22,8 +32,4 @@ type GroceryJSON struct {
 	DateAdded string `json:"date_added"`
 	ExpDate   string `json:"exp_date"`
 	StorageID int    `json:"storage_id"`
-}
-
-type Count struct {
-	Count int `json:"count"`
 }

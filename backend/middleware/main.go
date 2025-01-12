@@ -13,12 +13,38 @@ import (
 	"os"
 	"os/signal"
 	"reflect"
-	"strconv"
 	"sync"
 	"time"
 )
 
 var db sql.DB
+
+// Get the product name and image from openfoodfacts. Pass in the UPC.
+func getProduct(upc string) (OpenFoodFactsResponse, error) {
+	endpoint := "https://world.openfoodfacts.net/api/v2/product/" + upc + "?product_type=food&fields=product%2Cproduct_name%2Cimage_small_url"
+	resp, err := http.Get(endpoint)
+	if err != nil {
+		log.Println("error accessing openfoodfact.net api")
+		return OpenFoodFactsResponse{}, err
+	}
+	defer resp.Body.Close()
+
+  if resp.StatusCode != 200 {
+  	return OpenFoodFactsResponse{}, fmt.Errorf("API call returned status code: %d", resp.StatusCode)
+  }
+
+  body, err := io.ReadAll(resp.Body)
+  if err != nil {
+    return OpenFoodFactsResponse{}, fmt.Errorf("failed to read response body: %w", err)
+  }
+
+  var response OpenFoodFactsResponse
+  if err := json.Unmarshal(body, &response); err != nil {
+    return OpenFoodFactsResponse{}, fmt.Errorf("failed to unmarshal response: %w", err)
+  }
+
+  return response, nil
+}
 
 // Initializes the connection to the sqlite3 database.
 func dbInit() (sql.DB, error) {
@@ -37,9 +63,9 @@ func dbExec(e string) {
 	_, err := db.Exec(e)
 	if err != nil {
 		log.Println("error executing db command")
+		log.Println(err)
 		return
 	}
-	log.Println("successfully executed db command")
 }
 
 // Queries the sqlite3 database
@@ -113,9 +139,12 @@ func addItem(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+
+	offResponse, err := getProduct(item.Upc)
 	currentTime := time.Now()
-	insertIntoItems := "INSERT OR REPLACE INTO items (upc, name, image, count) VALUES ('" + item.Upc + "', '" + item.Name + "', '" + item.Image + "', COALESCE((SELECT count FROM items WHERE upc = '" + item.Upc + "'), 0) + 1);"
-	insertIntoGroceries := "INSERT INTO groceries (item, date_added, exp_date, storage_id) VALUES ('" + item.Upc + "', '" + currentTime.String() + "', '" + item.ExpDate + "', '" + strconv.Itoa(item.Storage) + "');"
+	log.Println(offResponse.Product.ProductName)
+	insertIntoItems := "INSERT OR REPLACE INTO items (upc, name, image, count) VALUES ('" + item.Upc + "', '" + offResponse.Product.ProductName + "', '" + offResponse.Product.ImageSmallURL + "', COALESCE((SELECT count FROM items WHERE upc = '" + item.Upc + "'), 0) + 1);"
+	insertIntoGroceries := "INSERT INTO groceries (item, date_added, exp_date) VALUES ('" + item.Upc + "', '" + currentTime.String() + "', '" + item.ExpDate + "');"
 	dbExec(insertIntoItems)
 	dbExec(insertIntoGroceries)
 
