@@ -1,8 +1,14 @@
 import React, { useState } from "react";
 
 const App = () => {
+  const [items, setItems] = useState([{
+    upc: "",
+    name: "",
+    image: "",
+    count: 0,
+  }]);
   const [formData, setFormData] = useState({
-    upc: ""
+    upc: "",
   });
 
   // Update form data to always be up to date with the entries on the form.
@@ -24,12 +30,13 @@ const App = () => {
       },
       body: JSON.stringify(formData),
     };
-    console.log(requestOptions);
     try {
       await fetch("http://localhost:5787/addItem", requestOptions);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
+
+    await getItems();
   };
 
   const getItems = async () => {
@@ -42,7 +49,8 @@ const App = () => {
       console.error("Error fetching data:", error);
     }
 
-    console.log(response.body);
+    const data = await response.json();
+    setItems(data);
   }
 
   return (
@@ -62,6 +70,29 @@ const App = () => {
         </div>
       </form >
       <button onClick={getItems}>Get Items List</button>
+      <table>
+        <thead>
+          <tr>
+            <th>UPC</th>
+            <th>Product Name</th>
+            <th>Image</th>
+            <th>Count</th>
+            {/* Add more columns as needed */}
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item, index) => (
+            <tr key={index}>
+              <td>{item.upc}</td>
+              <td>{item.name}</td>
+              <td>
+                <img src={item.image} />
+              </td>
+              <td>{item.count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

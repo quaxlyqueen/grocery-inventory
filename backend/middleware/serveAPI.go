@@ -21,8 +21,12 @@ func ServeApi(
 	apiR := router.Host(domain).Subrouter()
 
 	for i := 0; i < len(endpoint); i++ {
-		apiR.HandleFunc(endpoint[i], function[i])
+		apiR.HandleFunc(endpoint[i], function[i]).Methods("POST", "GET", "OPTIONS")
 	}
+
+	apiR.HandleFunc("/foo", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+	}).Methods(http.MethodOptions)
 
 	apiSrv := &http.Server{
 		Addr:         "0.0.0.0:" + port,

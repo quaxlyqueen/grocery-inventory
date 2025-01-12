@@ -29,21 +29,21 @@ func getProduct(upc string) (OpenFoodFactsResponse, error) {
 	}
 	defer resp.Body.Close()
 
-  if resp.StatusCode != 200 {
-  	return OpenFoodFactsResponse{}, fmt.Errorf("API call returned status code: %d", resp.StatusCode)
-  }
+	if resp.StatusCode != 200 {
+		return OpenFoodFactsResponse{}, fmt.Errorf("API call returned status code: %d", resp.StatusCode)
+	}
 
-  body, err := io.ReadAll(resp.Body)
-  if err != nil {
-    return OpenFoodFactsResponse{}, fmt.Errorf("failed to read response body: %w", err)
-  }
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return OpenFoodFactsResponse{}, fmt.Errorf("failed to read response body: %w", err)
+	}
 
-  var response OpenFoodFactsResponse
-  if err := json.Unmarshal(body, &response); err != nil {
-    return OpenFoodFactsResponse{}, fmt.Errorf("failed to unmarshal response: %w", err)
-  }
+	var response OpenFoodFactsResponse
+	if err := json.Unmarshal(body, &response); err != nil {
+		return OpenFoodFactsResponse{}, fmt.Errorf("failed to unmarshal response: %w", err)
+	}
 
-  return response, nil
+	return response, nil
 }
 
 // Initializes the connection to the sqlite3 database.
@@ -110,8 +110,6 @@ func dbQuery(q string) ([]interface{}, error) {
 }
 
 func jsonToItem(w http.ResponseWriter, r *http.Request) (Upc, error) {
-	enableCors(&w)
-	log.Println(r.Body)
 	input, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -135,8 +133,12 @@ func jsonToItem(w http.ResponseWriter, r *http.Request) (Upc, error) {
 }
 
 func addItem(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.Body)
-	enableCors(&w)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	item, err := jsonToItem(w, r)
 	if err != nil {
 		return
@@ -152,7 +154,13 @@ func addItem(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteItem(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	jsonToItem(w, r)
 	/*
 	   db, err := sql.Open("sqlite3", file)
@@ -228,7 +236,13 @@ func deleteItem(w http.ResponseWriter, r *http.Request) {
 
 // Retrieve all groceries
 func listItems(w http.ResponseWriter, r *http.Request) {
-	enableCors(&w)
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	items, err := dbQuery("SELECT * FROM items;")
 	if err != nil {
 		log.Println("error from dbQuery")
@@ -246,7 +260,7 @@ func listItems(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Extract values from the map
-		var i Item 
+		var i Item
 		if upc, ok := itemMap["upc"].(string); ok {
 			i.Upc = upc
 		}
@@ -260,9 +274,9 @@ func listItems(w http.ResponseWriter, r *http.Request) {
 			i.Count = count
 		}
 
-		itemsJson = append(itemsJson, Item {
-			Upc: i.Upc,
-			Name: i.Name,
+		itemsJson = append(itemsJson, Item{
+			Upc:   i.Upc,
+			Name:  i.Name,
 			Image: i.Image,
 			Count: i.Count,
 		})
@@ -275,18 +289,10 @@ func listItems(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	_, err = w.Write(jsonData)
-	if err != nil {
-		log.Println("Error writing JSON response:", err)
-	}
-}
-
-func enableCors(w *http.ResponseWriter) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintf(w, string(jsonData))
+	return
 }
 
 func main() {
